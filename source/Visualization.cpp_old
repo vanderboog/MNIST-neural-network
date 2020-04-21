@@ -1,0 +1,52 @@
+#include <armadillo>
+#include <opencv2/highgui.hpp>
+#include <opencv2/core.hpp>
+#include <opencv2/core/mat.hpp>
+#include <opencv2/imgproc.hpp>
+
+void displayImage(const arma::colvec &im, const std::string strDigit)
+{
+	////////////////////////////////////////////////////////////////////////////////////////////
+	/// Converts the test set into an image and displays the digit image with the network result
+	////////////////////////////////////////////////////////////////////////////////////////////
+
+	// cv::namedWindow("Digit images", CV_WINDOW_AUTOSIZE);
+
+	/// Extract data from test set and convert into an image (and convert from arma to openCV format)
+	arma::dmat imArma = reshape(round(im * 256), 28, 28);
+
+	cv::Mat imDigit(28, 28, CV_64FC1, imArma.memptr());
+	std::cout << imDigit << "\n";
+	std::cout << "Working so far8!\n";
+	/// Resize to a readible size:
+	cv::Mat imDigitScaled;
+	cv::resize(imDigit, imDigitScaled, cv::Size(280, 280));
+	std::cout << "Number of pixels: " << imDigitScaled.total() << "\n";
+	std::cout << "Working so far9!\n";
+	/// Apply gaussian smoothing by iteration of averaging.
+	cv::Mat kernel = (cv::Mat_<double>(3, 3) << 1, 1, 1,
+					  1, 1, 1,
+					  1, 1, 1);
+	cv::Mat imBlur = imDigitScaled.clone();
+	// std::cout << CV_MAJOR_VERSION << "." << CV_MINOR_VERSION << "\n";
+	// GaussianBlur(imDigitScaled, imBlur, cv::Size(5, 5), 0,0);
+	// cv::filter2D(imDigitScaled, imBlur, CV_64FC1, kernel);
+	std::cout << "Working so far11!\n";
+	// cv::filter2D(imBlur, imBlur, CV_64FC1, kernel);
+	// cv::filter2D(imBlur, imBlur, CV_64FC1, kernel);
+	// imBlur = imBlur / 729; // Compensate for sum of kernel being !=1
+	std::cout << "Working so far12!\n";
+	// Convert to byte type image and add the digit label
+	// imBlur.convertTo(imBlur, CV_8UC1);
+	cv::putText(imDigitScaled,
+				strDigit,
+				cv::Point(5, 20),				// Coordinates
+				cv::FONT_HERSHEY_COMPLEX_SMALL, // Font
+				1.0,							// Scale. 2.0 = 2x bigger
+				cv::Scalar(255, 0, 0),			// BGR Color
+				1);								// Line Thickness (Optional)
+												//,cv::CV_AA); // Anti-alias (Optional)
+	std::cout << "Working so far13!\n";
+	cv::imshow("Digit images", imDigitScaled);
+	cv::waitKey(3000);
+}
