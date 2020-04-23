@@ -1,17 +1,18 @@
-#include <iostream>
 #include <armadillo>
-#include <string>
-#include <fstream>
-#include <opencv2/highgui.hpp>
 #include <boost/filesystem.hpp>
-#include <random>
-#include <memory>
+#include <fstream>
 #include <iomanip>
+#include <iostream>
+#include <memory>
+#include <opencv2/highgui.hpp>
+#include <random>
+#include <string>
+#include "Neural_Network.h"
 #include "ReadMNIST.h"
 #include "Visualization.h"
-#include "Neural_Network.h"
 
-std::string setSavePath(std::string setPath)
+
+std::string setPathSave(std::string const setPath)
 {
     /// Make sure Result_Network directory exists
     if (!boost::filesystem::exists(setPath))
@@ -21,19 +22,19 @@ std::string setSavePath(std::string setPath)
 
     /// Set save path to a unique path of 'Results_##', found by incrementing from 1 
     /// to 32. If the full range is used, the save path is set to 'Result_32'
-    std::string setPathSave;
+    std::string setSavePath;
     for (int iFolder = 1; iFolder < 33; iFolder++)
     {
-        setPathSave = setPath + "/Results_" + std::to_string(iFolder);
-        if (!boost::filesystem::exists(setPathSave))
+        setSavePath = setPath + "/Results_" + std::to_string(iFolder);
+        if (!boost::filesystem::exists(setSavePath))
         {
-            boost::filesystem::create_directory(setPathSave);
+            boost::filesystem::create_directory(setSavePath);
             break;
         }
     }
 
-    std::cout << "Save path is set to: " << setPathSave << "\n";
-    return setPathSave;
+    std::cout << "Save path is set to: " << setSavePath << "\n";
+    return setSavePath;
 }
 
 void showUsage()
@@ -71,29 +72,29 @@ int main(int argc, const char **argv)
     /// Test if sufficient arguments are given
     if (argc < 2)
     {
-        std::cout << "No arguments are given. Use --help to show options.\nTerminating program.\n";
+        std::cerr << "No arguments are given. Use --help to show options.\nTerminating program." << std::endl;
         return 1;
     }
 
-    /// Init paths
-    std::string const setPath = get_current_dir(); // part of "ReadMNIST.h"
+    /// Initialize paths
+    std::string const setPath = getCurrentDir(); // part of "readmnist.h"
     std::string const setPathTrainingImages = setPath + "/../Training_images/train-images.idx3-ubyte";
     std::string const setPathTrainingLabels = setPath + "/../Training_images/train-labels.idx1-ubyte";
     std::string const setPathTestImages = setPath + "/../Test_images/t10k-images.idx3-ubyte";
     std::string const setPathTestLabels = setPath + "/../Test_images/t10k-labels.idx1-ubyte";
     std::string const setPathResults = setPath + "/../Results_Network";
 
-    NN network;
+    NeuralNetwork network;
 
     /// Interpret if program is used for training or testing
     if (std::string(argv[1]) == "-train")
     {
         /// Determine path to store results:
-        std::string setPathStoreResult = setSavePath(setPathResults);
+        std::string setSavePath = setPathSave(setPathResults);
 
         /// Store file containing input arguments:
         std::ofstream outputFile;
-        outputFile.open(setPathStoreResult + "/Input_parameters");
+        outputFile.open(setSavePath + "/Input_parameters");
         for (int iArgv = 2; iArgv < argc + 1; iArgv++)
         {
             outputFile << argv[iArgv] << "\t";
@@ -116,9 +117,9 @@ int main(int argc, const char **argv)
                     std::cout << pLayers[iLayer] << "\t";
                 }
                 std::cout << "\n";
-                network.setup(atoi(argv[iArgc + 1]), pLayers, setPathStoreResult);
+                network.initializeLayers(atoi(argv[iArgc + 1]), pLayers, setSavePath);
                 delete[] pLayers;
-                network.components();
+                network.layerInfo();
                 iArgc += atoi(argv[iArgc + 1]) + 1;
             }
             else if (std::string(argv[iArgc]) == "-param")
@@ -135,24 +136,24 @@ int main(int argc, const char **argv)
             }
             else
             {
-                std::cout << "The argument '" << argv[iArgc] << "' is unknown to the program. Use --help to show viable options." << std::endl;
-                return 0;
+                std::cerr << "The argument '" << argv[iArgc] << "' is unknown to the program. Use --help to show viable options." << std::endl;
+                return 2;
             }
         }
 
         /// Load data for training:
         std::cout << "Loading data...\n";
         // Reads images and returns a matrix(pxValue, numOfImages)
-        arma::dmat const trainingSet = ReadMNISTImages(setPathTrainingImages);
-        arma::uvec const trainingLabels = ReadMNISTLabels(setPathTrainingLabels, trainingSet.n_cols);
+        arma::dmat const trainingSet = readMnistImages(setPathTrainingImages);
+        arma::uvec const trainingLabels = readMnistLabels(setPathTrainingLabels, trainingSet.n_cols);
 
         // Read test images to determine the score
-        arma::dmat const testSet = ReadMNISTImages(setPathTestImages);
-        arma::uvec const testLabels = ReadMNISTLabels(setPathTestLabels, testSet.n_cols);
+        arma::dmat const testSet = readMnistImages(setPathTestImages);
+        arma::uvec const testLabels = readMnistLabels(setPathTestLabels, testSet.n_cols);
 
         /// Start training:
         int iCountScore = 0;
-        long int iEpocheCount = 0;
+        int iEpocheCount = 0;
         while (iEpocheCount < 70)
         {
             // Perform a training cycle (one epoche)
@@ -160,23 +161,22 @@ int main(int argc, const char **argv)
             iEpocheCount += 1;
 
             std::cout << "Epoche counter: " << iEpocheCount << "\t\tAverage cost: " << arma::mean(network.cost) << "\n";
-            iCountScore = network.score(testSet, testLabels);
+            iCountScore = network.computePerformance(testSet, testLabels);
 
             /// Store results every epoche
             network.storeResults();
         }
     }
-
     else if (std::string(argv[1]) == "-test")
     {
         /// Load test files
         std::cout << "Loading data...\n";
-        arma::dmat const testSet = ReadMNISTImages(setPathTestImages);
-        arma::uvec const testLabels = ReadMNISTLabels(setPathTestLabels, testSet.n_cols);
+        arma::dmat const testSet = readMnistImages(setPathTestImages);
+        arma::uvec const testLabels = readMnistLabels(setPathTestLabels, testSet.n_cols);
 
         /// Read parameters from parameter file
         std::ifstream inFile;
-        std::string setPathToLoad = setPathResults + "/Results_" + argv[2] + "/Input_parameters";
+        std::string const setPathToLoad = setPathResults + "/Results_" + argv[2] + "/Input_parameters";
 
         inFile.open(setPathToLoad);
         if (inFile.is_open())
@@ -199,19 +199,19 @@ int main(int argc, const char **argv)
                     }
 
                     /// Initialize weights and biases sizes and load results
-                    network.setup(numOfLayers, pLayer, setPathResults + "/Results_" + argv[2]);
+                    network.initializeLayers(numOfLayers, pLayer, setPathResults + "/Results_" + argv[2]);
                     network.loadResults(setPathResults + "/Results_" + argv[2], numOfLayers, pLayer);
                 }
             }
             /// Compute and output the score
-            network.score(testSet, testLabels);
+            network.computePerformance(testSet, testLabels);
             inFile.close();
             delete[] pLayer;
         }
         else
         {
-            std::cout << "Unable to open a result file: " << setPathToLoad << "\n";
-            return 2;
+            std::cerr << "Unable to open a result file: " << setPathToLoad << std::endl;
+            return 3;
         }
 
         // Cycle through arguments given and apply settings
@@ -251,8 +251,8 @@ int main(int argc, const char **argv)
             }
             else
             {
-                std::cout << "The argument '" << argv[iArgc] << "' is unknown to the program. Use --help to show viable options." << std::endl;
-                return 0;
+                std::cerr << "The argument '" << argv[iArgc] << "' is unknown to the program. Use --help to show viable options." << std::endl;
+                return 2;
             }
         }
     }
@@ -263,6 +263,7 @@ int main(int argc, const char **argv)
     else
     {
         std::cerr << "The argument " << argv[1] << " is unknown to this program. Use --help to show viable options." << std::endl;
+        return 2;
     }
     return 0;
 }

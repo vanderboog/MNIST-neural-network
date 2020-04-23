@@ -1,42 +1,40 @@
-#include <iostream>
 #include <armadillo>
-#include <string>
+#include <iostream>
 #include <memory>
+#include <string>
 #include "Neural_Network.h"
 
-NN::NN() :
-    setLearnSampleSize(100),
-	setLearnReductionCycle(1000),
-	setLearnReductionFactor(1),
-	eta(0.1),
-	regularization(0),
-	halfRegularization(regularization / 2),
-	iCountEpoch(0)
+NeuralNetwork::NeuralNetwork() :
+    learnSetSize_(100),
+	learnReductionCycle_(1000),
+	learnReductionFactor_(1),
+	learnRate_(0.1),
+	regularization_(0),
+	halfRegularization_(regularization_ / 2),
+	iCountEpoch_(0)
 {}
 
 
-void NN::setup(int numOfLayers, int *pLayerSize, std::string setPath)
+void NeuralNetwork::initializeLayers(int numOfLayers, int *pLayerSize, std::string setSavePath)
 {
 	///////////////////////////////////////////////////////
 	/// Creates layers and sets component sizes.
-	/// Components are initialized ready for training
+	/// layerInfo are initialized ready for training
 	//////////////////////////////////////////////////////
-	setPathSave = setPath;
-
-	/// Set hyperparameters to the correct values
-	setNumOfLayers = numOfLayers;
-	sizeLayer = std::unique_ptr<int[]>(new int[numOfLayers]);
-	for (int iLayer = 0; iLayer < setNumOfLayers; iLayer++)
+	setSavePath_ = setSavePath;
+	numOfLayers_ = numOfLayers;
+	sizeLayer = std::unique_ptr<int[]>(new int[numOfLayers_]);
+	for (int iLayer = 0; iLayer < numOfLayers_; iLayer++)
 	{
 		sizeLayer[iLayer] = pLayerSize[iLayer];
 	}
 
 	/// Create the layers and initialize parameters;
-	pLayer = std::unique_ptr<cLayer[]>(new cLayer[setNumOfLayers]);
+	pLayer = std::unique_ptr<CLayer[]>(new CLayer[numOfLayers_]);
 	pLayer[0].a.set_size(sizeLayer[0]); // Treat first layer different as it does not have b, w, nor kD
-	for (int iLayer = 1; iLayer < setNumOfLayers; iLayer++)
+	for (int iLayer = 1; iLayer < numOfLayers_; iLayer++)
 	{
-		// Init: set matrix and vector sizes
+		// Initialize: matrix and vector sizes
 		pLayer[iLayer].a.set_size(sizeLayer[iLayer]);
 		pLayer[iLayer].z.set_size(sizeLayer[iLayer]);
 		pLayer[iLayer].b = arma::randn(sizeLayer[iLayer]);
@@ -58,92 +56,92 @@ void NN::setup(int numOfLayers, int *pLayerSize, std::string setPath)
 	}
 }
 
-void NN::setHyperParameters(double setLearnSetSizeParam, double etaParam, double regularizationParam)
+void NeuralNetwork::setHyperParameters(double learnSetSize, double learnRate, double regularization)
 {
-	setLearnSampleSize = setLearnSetSizeParam;
-	eta = etaParam;
-	regularization = regularizationParam;
-	halfRegularization = regularization / 2;
-	std::cout << "Hyper parameters settings:\n\t- Learning set size = " << setLearnSampleSize << "\n\t- Learning parameter (eta) = " << eta << "\n\t- Regularization parameter (Lambda) = " << regularization << "\n";
+	learnSetSize_ = learnSetSize;
+	learnRate_ = learnRate;
+	regularization_ = regularization;
+	halfRegularization_ = regularization_ / 2;
+	std::cout << "Hyper parameters settings:\n\t- Learning set size = " << learnSetSize_ << "\n\t- Learning parameter (learnRate_) = " << learnRate_ << "\n\t- Regularization_ parameter (lambda) = " << regularization_ << "\n";
 }
 
-void NN::components()
+void NeuralNetwork::layerInfo()
 {
 	/// Outputs layers information
-	std::cout << "Number of layers: \t" << setNumOfLayers << "\n";
-	std::cout << "Number of neurons in layer 1: \t" << sizeLayer[0] << "\n";
-	for (int iLayer = 1; iLayer < setNumOfLayers; iLayer++)
+	std::cout << "Number of layers: \t" << numOfLayers_ << "\n";
+	// std::cout << "Number of neurons in layer 1: \t" << sizeLayer[0] << "\n";
+	for (int iLayer = 0; iLayer < numOfLayers_; iLayer++)
 	{
 		std::cout << "Number of neurons in layer " << iLayer + 1 << ": \t" << sizeLayer[iLayer] << "\n";
 	}
 
-	for (int iLayer = 1; iLayer < setNumOfLayers; iLayer++)
+	for (int iLayer = 1; iLayer < numOfLayers_; iLayer++)
 	{
 		std::cout << "Weight matrix size (rows by cols) to layer " << iLayer + 1 << ": \t" << pLayer[iLayer].w.n_rows << " x " << pLayer[iLayer].w.n_cols << "\n";
 	}
 }
 
-void NN::training(const arma::dmat &trainingSet, const arma::uvec &trainingLabels)
+void NeuralNetwork::training(const arma::dmat &trainingSet, const arma::uvec &trainingLabels)
 {
 	///////////////////////////////////////////////////////
 	/// Training the neural network by feeding it one epoch
 	///////////////////////////////////////////////////////
-	/// Init
+	/// Initialize
 	int numOfCol = trainingSet.n_cols;
 	int numOfRow = trainingSet.n_rows;
-	arma::uvec yVector(sizeLayer[setNumOfLayers - 1]);
-	arma::uvec oneVector(sizeLayer[setNumOfLayers - 1], arma::fill::ones);
+	arma::uvec yVector(sizeLayer[numOfLayers_ - 1]);
+	arma::uvec oneVector(sizeLayer[numOfLayers_ - 1], arma::fill::ones);
 	arma::uvec sampleStack_i = arma::randperm(numOfCol);
 
-	/// Reduce eta if -reduceLearnRate is used
-	if (iCountEpoch % setLearnReductionCycle == 0 && iCountEpoch != 0)
+	/// Reduce learnRate_ if -reduceLearnRate is used
+	if(iCountEpoch_ % learnReductionCycle_ == 0 && iCountEpoch_ != 0)
 	{
-		reduceLearnRate(setLearnReductionFactor);
+		reduceLearnRate(learnReductionFactor_);
 	}
 
-	int numOfCyclesperEpoch = numOfCol / setLearnSampleSize; // Compute amount of cycles making up one epoch and only loop over complete cycles, omitting remaining samples
+	int numOfCyclesPerEpoch = numOfCol / learnSetSize_; // Compute amount of cycles making up one epoch and only loop over complete cycles, omitting remaining samples
 	/// Cycle through the epoch and apply learning after each cycle
-	cost = arma::zeros(numOfCyclesperEpoch);
-	for (int iCycle = 0; iCycle < numOfCyclesperEpoch; iCycle++)
+	cost = arma::zeros(numOfCyclesPerEpoch);
+	for (int iCycle = 0; iCycle < numOfCyclesPerEpoch; iCycle++)
 	{
-		int iSampleOffset = iCycle * setLearnSampleSize;
+		int iSampleOffset = iCycle * learnSetSize_;
 
-		/// Set dw and db to zero after each cycle
-		for (int iLayer = 1; iLayer < setNumOfLayers; iLayer++)
+		/// Set dw and db to zero before each cycle
+		for (int iLayer = 1; iLayer < numOfLayers_; iLayer++)
 		{
 			pLayer[iLayer].db.zeros(pLayer[iLayer].db.n_rows, pLayer[iLayer].db.n_cols);
 			pLayer[iLayer].dw.zeros(pLayer[iLayer].dw.n_rows, pLayer[iLayer].dw.n_cols);
 		}
 
-		for (int iSample = 0; iSample < setLearnSampleSize; iSample++)
+		for (int iSample = 0; iSample < learnSetSize_; iSample++)
 		{
 			/// Load the image and create label vector (yVector)
 			pLayer[0].a = trainingSet.col(sampleStack_i(iSample + iSampleOffset));
 			yVector = yVectorGenerator(trainingLabels(sampleStack_i(iSample + iSampleOffset)));
 
 			/// Feed forward
-			digit = feedForward(pLayer[0].a);
+			digit_ = feedForward(pLayer[0].a);
 
 			/// Compute cost (-= is used instead of -1*)
-			cost[iCycle] -= as_scalar(trans(yVector) * log(pLayer[setNumOfLayers - 1].a) + trans(oneVector - yVector) * log(oneVector - pLayer[setNumOfLayers - 1].a));
-			/// Add regularization term:
-			if (regularization != 0)  // Skip overhead computation in case of 0
+			cost[iCycle] -= as_scalar(trans(yVector) * log(pLayer[numOfLayers_ - 1].a) + trans(oneVector - yVector) * log(oneVector - pLayer[numOfLayers_ - 1].a));
+			/// Add regularization_ term:
+			if (regularization_ != 0)  // Skip overhead computation in case of 0
 			{
-				for (int iLayer = 1; iLayer < setNumOfLayers; iLayer++)
+				for (int iLayer = 1; iLayer < numOfLayers_; iLayer++)
 				{
-					cost[iCycle] += halfRegularization * accu(pLayer[iLayer].w % pLayer[iLayer].w);
+					cost[iCycle] += halfRegularization_ * accu(pLayer[iLayer].w % pLayer[iLayer].w);  //Expensive
 				}
 			}
 
 			/// Back propagation
 			/// Compute error terms: dC/dz
-			pLayer[setNumOfLayers - 1].kD = pLayer[setNumOfLayers - 1].a - yVector;
-			for (int iLayer = setNumOfLayers - 2; iLayer > 0; iLayer--)
+			pLayer[numOfLayers_ - 1].kD = pLayer[numOfLayers_ - 1].a - yVector;
+			for (int iLayer = numOfLayers_ - 2; iLayer > 0; iLayer--)
 			{
 				pLayer[iLayer].kD = pLayer[iLayer + 1].w.t() * pLayer[iLayer + 1].kD % Dsigmoid(pLayer[iLayer].z);
 			}
 			/// Compute gradient descent of w and b (seperate loop for clarity)
-			for (int iLayer = 1; iLayer < setNumOfLayers; iLayer++)
+			for (int iLayer = 1; iLayer < numOfLayers_; iLayer++)
 			{
 				pLayer[iLayer].dw += arma::kron(pLayer[iLayer].kD, pLayer[iLayer - 1].a.t());
 				pLayer[iLayer].db += pLayer[iLayer].kD;
@@ -151,40 +149,40 @@ void NN::training(const arma::dmat &trainingSet, const arma::uvec &trainingLabel
 		}
 
 		/// Apply gradient descent on w and b
-		for (int iLayer = 1; iLayer < setNumOfLayers; iLayer++)
+		for (int iLayer = 1; iLayer < numOfLayers_; iLayer++)
 		{
-			pLayer[iLayer].w -= eta * (pLayer[iLayer].dw + regularization * pLayer[iLayer].w) / setLearnSampleSize; // with regularization term
-			pLayer[iLayer].b -= eta * pLayer[iLayer].db / setLearnSampleSize;
+			pLayer[iLayer].w -= learnRate_ * (pLayer[iLayer].dw + regularization_ * pLayer[iLayer].w) / learnSetSize_; // with regularization_ term
+			pLayer[iLayer].b -= learnRate_ * pLayer[iLayer].db / learnSetSize_;
 		}
 
-		cost = cost / setLearnSampleSize;
+		cost = cost / learnSetSize_;
 	}
-	iCountEpoch++;
+	iCountEpoch_++;
 }
 
-arma::uvec NN::yVectorGenerator(const arma::uword &label)
+arma::uvec NeuralNetwork::yVectorGenerator(const arma::uword &label)
 {
 	/// Generates a vector representation of the label: vector of zeros, with at the labelth index a 1
-	arma::uvec y = arma::zeros<arma::uvec>(sizeLayer[setNumOfLayers - 1]);
+	arma::uvec y = arma::zeros<arma::uvec>(sizeLayer[numOfLayers_ - 1]);
 	y(label) = 1;
 	return y;
 }
 
-arma::dvec NN::sigmoid(arma::dvec &z)
+arma::dvec NeuralNetwork::sigmoid(arma::dvec &z)
 {
 	return 1 / (1 + exp(-z));
 }
 
-arma::dvec NN::Dsigmoid(arma::dvec &z)
+arma::dvec NeuralNetwork::Dsigmoid(arma::dvec &z)
 {
 	arma::dvec dS = sigmoid(z);
 	return (dS % (1 - dS)); // %: Schur product, i.e. element-wise product
 }
 
-int NN::score(const arma::dmat &testSet, const arma::uvec &testLabels)
+int NeuralNetwork::computePerformance(const arma::dmat &testSet, const arma::uvec &testLabels)
 {
 	////////////////////////////////////////////
-	/// Score the network based on the test set
+	/// Compute network performance based on the test set
 	////////////////////////////////////////////
 
 	int iCountCorrect = 0;
@@ -197,59 +195,59 @@ int NN::score(const arma::dmat &testSet, const arma::uvec &testLabels)
 			iCountCorrect++;
 		}
 	}
-	std::cout << "Score: " << iCountCorrect << " / " << sizeSet << "\n";
+	std::cout << "Performance: " << iCountCorrect << " / " << sizeSet << "\n";
 	return iCountCorrect;
 }
 
-int NN::feedForward(const arma::dvec &imVector)
+int NeuralNetwork::feedForward(const arma::dvec &imVector)
 {
 	/// Apply feedforward to determine and return the network answer
 	pLayer[0].a = imVector;
-	for (int iLayer = 1; iLayer < setNumOfLayers; iLayer++)
+	for (int iLayer = 1; iLayer < numOfLayers_; iLayer++)
 	{
 		pLayer[iLayer].z = pLayer[iLayer].w * pLayer[iLayer - 1].a + pLayer[iLayer].b;
 		pLayer[iLayer].a = sigmoid(pLayer[iLayer].z);
 	}
-	return pLayer[setNumOfLayers - 1].a.index_max();
+	return pLayer[numOfLayers_ - 1].a.index_max();
 }
 
-void NN::setLearningReductionParameters(double setFactor, int setCycle)
+void NeuralNetwork::setLearningReductionParameters(double learnReductionFactor, int learnReductionCycle)
 {
-	setLearnReductionFactor = setFactor;
-	setLearnReductionCycle = setCycle;
-	std::cout << "Learning rate reduction factor: " << setLearnReductionFactor << "\n";
-	std::cout << "Learning rate reduction cycle: " << setLearnReductionCycle << "\n";
+	learnReductionFactor_ = learnReductionFactor;
+	learnReductionCycle_ = learnReductionCycle;
+	std::cout << "Learning rate reduction factor: " << learnReductionFactor_ << "\n";
+	std::cout << "Learning rate reduction cycle: " << learnReductionCycle_ << "\n";
 }
 
-void NN::reduceLearnRate(double factor)
+void NeuralNetwork::reduceLearnRate(double factor)
 {
-	eta = eta / factor;
-	std::cout << "Eta reduced to:\t" << eta << "\n";
+	learnRate_ = learnRate_ / factor;
+	std::cout << "learnRate_ reduced to:\t" << learnRate_ << "\n";
 }
 
-void NN::storeResults()
+void NeuralNetwork::storeResults()
 {
 	/// Store essential parameters of the network: weights and biases
-	for (int iLayer = 1; iLayer < setNumOfLayers; iLayer++)
+	for (int iLayer = 1; iLayer < numOfLayers_; iLayer++)
 	{
-		pLayer[iLayer].w.save(setPathSave + "/w" + std::to_string(iLayer + 1));
-		pLayer[iLayer].b.save(setPathSave + "/b" + std::to_string(iLayer + 1));
+		pLayer[iLayer].w.save(setSavePath_ + "/w" + std::to_string(iLayer + 1));
+		pLayer[iLayer].b.save(setSavePath_ + "/b" + std::to_string(iLayer + 1));
 	}
 }
 
-void NN::loadResults(const std::string &setPathResult, int numOfLayers, int *layerSize)
+void NeuralNetwork::loadResults(const std::string &setSavePath, int numOfLayers, int *layerSize)
 {
-	setPathSave = setPathResult;
-	setNumOfLayers = numOfLayers;
+	setSavePath_ = setSavePath;
+	numOfLayers_ = numOfLayers;
 
 	/// Load the actual stored data
-	for (int iLayer = 1; iLayer < setNumOfLayers; iLayer++)
+	for (int iLayer = 1; iLayer < numOfLayers_; iLayer++)
 	{
-		std::cout << "Loading file: " << (setPathResult + "/w" + std::to_string(iLayer + 1)) << "\n";
-		pLayer[iLayer].w.load(setPathResult + "/w" + std::to_string(iLayer + 1));
-		std::cout << "Loading file: " << (setPathResult + "/b" + std::to_string(iLayer + 1)) << "\n";
-		pLayer[iLayer].b.load(setPathResult + "/b" + std::to_string(iLayer + 1));
+		std::cout << "Loading file: " << (setSavePath_ + "/w" + std::to_string(iLayer + 1)) << "\n";
+		pLayer[iLayer].w.load(setSavePath_ + "/w" + std::to_string(iLayer + 1));
+		std::cout << "Loading file: " << (setSavePath_ + "/b" + std::to_string(iLayer + 1)) << "\n";
+		pLayer[iLayer].b.load(setSavePath_ + "/b" + std::to_string(iLayer + 1));
 	}
 
-    components();
+    layerInfo();
 }
