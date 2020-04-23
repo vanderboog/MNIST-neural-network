@@ -85,7 +85,6 @@ arma::uvec readMnistLabels(std::string setPath, arma::uword numOfLabels)
     return labelVector;
 }
 
-
 std::string getCurrentDir() {
    char buff[FILENAME_MAX]; //create string buffer to hold path
    GetCurrentDir( buff, FILENAME_MAX );
