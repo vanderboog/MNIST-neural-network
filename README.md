@@ -9,7 +9,7 @@ Packages used:
 - Armadillo (linear algebra)
 - OpenCV (visualization)
 
-Options available |                                                           
+Options available |                                                           |
  ---------------------------------- | ------------------------------------------------------------ 
 -train                             | Train a new neural network. This mode requires the training set and labels. See training options below for more details. 
 -test                              | Test a trained network. This mode requires a trained network stored in Results_Network and the test set. After '-test' refer to the folder     containing the results by the trailing number in the folder name, e.g.  '-test 1' to test the performance of the network stored in 'Network_Results/Results_1'. See test  options below for more details. 
