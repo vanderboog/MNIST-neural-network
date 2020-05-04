@@ -25,5 +25,6 @@ Test options |                                                              |
 -display     | Opens a window to visualize the test images in a random sequence. Visualization can be stopped by pressing **q**. |
 
 ```cpp
-[![Code Review](http://www.zomis.net/codereview/shield/?qid=241074)](http://codereview.stackexchange.com/q/241074)
+[![Code Review](http://www.zomis.net/codereview/shield/?qid=241074)](http://codereview.stackexchange.com/q/241074/222703)
 ```
+
