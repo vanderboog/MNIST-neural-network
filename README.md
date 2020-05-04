@@ -21,7 +21,7 @@ Train options   |                                                              |
 -reduceLearning | Used to reduce the learning parameter by {factor x, per y epoch}, e.g. -reduceLearning {2,20}. 
 
 Test options |                                                              |
----------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------ 
+---------------------------------- | ------------------------------------------------------------ 
 -display     | Opens a window to visualize the test images in a random sequence. Visualization can be stopped by pressing **q**. |
 
 ```cpp
