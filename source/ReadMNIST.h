@@ -1,3 +1,3 @@
-arma::dmat readMnistImages( std::string);
-arma::uvec readMnistLabels( std::string, arma::uword );
+arma::dmat readMnistImages( std::string setPath);
+arma::uvec readMnistLabels( std::string setPath, arma::uword numOfLabels );
 std::string getCurrentDir();

@@ -1,7 +1,7 @@
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgproc.hpp>
 
-void displayImage(const cv::Mat &im, const std::string strDigit)
+void displayImage(const cv::Mat &im, const std::string &strDigit)
 {
 	////////////////////////////////////////////////////////////////////////////////////////////
 	/// Scales the image into readable size and prints the network result onto image

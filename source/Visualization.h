@@ -1,1 +1,1 @@
-void displayImage( const cv::Mat &, const std::string );
+void displayImage( const cv::Mat &im, const std::string &strDigit);

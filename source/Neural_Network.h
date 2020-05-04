@@ -1,5 +1,8 @@
-struct CLayer
+class NeuralNetworkConfig;
+
+class CLayer
 {
+	friend class NeuralNetwork;
 	// Declaration of variables used in a each layer
 	arma::dvec a;
 	arma::dvec z;
@@ -22,27 +25,22 @@ class NeuralNetwork
 	int iCountEpoch_;
 	int digit_;
 	std::string setSavePath_;
-
-	//Smart pointers are used to ensure freeing of memory. The pointers are not always used and can therefore not be freed in a destructor
-	std::unique_ptr<int[]> sizeLayer;
-	std::unique_ptr<CLayer[]> pLayer;
+	std::vector<int> sizeLayer_;
+	std::vector<CLayer> pLayer;
 
 public:
 	arma::dvec cost;
 
-	NeuralNetwork();
+	NeuralNetwork( NeuralNetworkConfig &config, std::default_random_engine &generatorRandom);
 
-	void initializeLayers(int, int *, std::string);
-	void setHyperParameters(double, double, double);
-	void layerInfo();
-	void training(const arma::dmat &, const arma::uvec &);
-	arma::uvec yVectorGenerator(const arma::uword &);
-	arma::dvec sigmoid(arma::dvec &);
-	arma::dvec Dsigmoid(arma::dvec &);
-	int computePerformance(const arma::dmat &, const arma::uvec &);
-	int feedForward(const arma::dvec &);
-	void setLearningReductionParameters(double, int);
-	void reduceLearnRate(double);
-	void storeResults();
-	void loadResults(const std::string &, int, int *);
+	void layerInfo() const;
+	void training(const arma::dmat &trainingSet, const arma::uvec &trainingLabels, std::default_random_engine & generatorRandom);
+	arma::uvec yVectorGenerator(const arma::uword &label);
+	arma::dvec sigmoid(arma::dvec &z);
+	arma::dvec Dsigmoid(arma::dvec &z);
+	int computePerformance(const arma::dmat &testSet, const arma::uvec &testLabels);
+	int feedForward(const arma::dvec &imVector);
+		void reduceLearnRate(const double &factor);
+	void storeResults() const;
+	void loadResults(const std::string &setSavePath);
 };
